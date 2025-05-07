@@ -1,22 +1,26 @@
-﻿using System;
-using System.Collections.Generic;
-using AdmissionSystem.Core.Models;
+﻿using AdmissionSystem.Core.Models;
 
 namespace AdmissionSystem.Core.Patterns
 {
-    // AdmissionSystem.cs
     public class AdmissionSystem
     {
         private static readonly Lazy<AdmissionSystem> _instance = new(() => new AdmissionSystem());
+        public static AdmissionSystem GetInstance() => _instance.Value;
 
-        // Update this line to dereference the Lazy type to get the actual instance.
-        public static AdmissionSystem GetInstance() => _instance.Value; // Access the actual instance
+        private readonly List<AdmissionCenter> _centers = new();
+        private int _nextCenterId = 1;
 
-        public List<AdmissionCenter> Centers { get; } = new();
+        public IReadOnlyList<AdmissionCenter> Centers => _centers;
 
         private AdmissionSystem() { }
 
-        public void RegisterCenter(AdmissionCenter center) => Centers.Add(center);
-    }
+        public AdmissionCenter RegisterCenter(AdmissionCenter center)
+        {
+            center.CenterId = _nextCenterId++;
+            _centers.Add(center);
+            return center;
+        }
 
+        public AdmissionCenter? GetCenterById(int id) => _centers.FirstOrDefault(c => c.CenterId == id);
+    }
 }

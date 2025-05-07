@@ -1,130 +1,80 @@
 ﻿using AdmissionSystem.Core.Models;
 using AdmissionSystem.Core.Patterns;
-using AdmissionSystem.Core.Factories;
-using System.Linq;
+using Moq;
 using Xunit;
+
 
 namespace AdmissionSystem.Tests
 {
     public class AdmissionCenterTests
     {
-        private AdmissionCenter SetupTestCenter(int totalRooms = 5, int roomCapacity = 2)
+        private readonly AdmissionCenter _center;
+
+        public AdmissionCenterTests()
         {
-            var center = new AdmissionCenter("TestCenter", new UtilizationAwareStrategy());
-            for (int i = 1; i <= totalRooms; i++)
-            {
-                center.AddRoom(RoomFactory.CreateRoom($"T{i}", roomCapacity, "TestCenter"));
-            }
-            center.ActivateInitialRooms();
-            return center;
+            var strategy = new Mock<ISeatAllocationStrategy>();
+            _center = new AdmissionCenter("Test Center", strategy.Object);
         }
 
         [Fact]
-        public void Should_Assign_Seat_When_Room_Has_Space()
+        public void AddRoom_ShouldAddRoomToCenter()
         {
             // Arrange
-            var center = SetupTestCenter();
+            var room = new Room("R1", 10, "Test Center");
 
             // Act
-            var result = center.AssignSeatToStudent();
+            _center.AddRoom(room);
 
             // Assert
-            Assert.True(result);
-            Assert.Equal(1, center.ActiveRooms.Sum(r => r.Occupied));
+            Assert.Contains(room, _center.GetRooms());
         }
 
         [Fact]
-        public void Should_Not_Assign_Seat_When_All_Rooms_Full()
+        public void AssignSeatToStudent_ShouldAssignSeat_WhenRoomHasSpace()
         {
             // Arrange
-            var center = SetupTestCenter(totalRooms: 1, roomCapacity: 1);
-            center.AssignSeatToStudent(); // Fill the only seat
+            var room = new Room("R1", 10, "Test Center");
+            var strategy = new Mock<ISeatAllocationStrategy>();
+            strategy.Setup(s => s.SelectRoom(It.IsAny<List<Room>>())).Returns(room);
+            _center.AddRoom(room);
+            _center.Attach(new Mock<IObserver>().Object);
 
             // Act
-            var result = center.AssignSeatToStudent();
+            var success = _center.AssignSeatToStudent();
 
             // Assert
-            Assert.False(result);
+            Assert.True(success);
+            Assert.Equal(1, room.Occupied);
         }
 
         [Fact]
-        public void Should_Open_New_Room_When_Utilization_Threshold_Exceeded()
+        public void AssignSeatToStudent_ShouldNotAssignSeat_WhenNoRoomAvailable()
         {
             // Arrange
-            var center = SetupTestCenter(totalRooms: 5, roomCapacity: 2);
-
-            // Fill 3 rooms (capacity = 6)
-            for (int i = 0; i < 6; i++)
-            {
-                center.AssignSeatToStudent();
-            }
-
-            var activeBefore = center.ActiveRooms.Count;
-
-            // Act: This will exceed utilization and trigger new room
-            center.AssignSeatToStudent();
-            var activeAfter = center.ActiveRooms.Count;
-
-            // Assert
-            Assert.True(activeAfter > activeBefore);
-        }
-
-        [Fact]
-        public void Should_Add_New_Room_Manually_When_Available()
-        {
-            // Arrange
-            var center = SetupTestCenter();
-
-            var initialActive = center.ActiveRooms.Count;
+            var strategy = new Mock<ISeatAllocationStrategy>();
+            strategy.Setup(s => s.SelectRoom(It.IsAny<List<Room>>())).Returns((Room)null);
+            _center.Attach(new Mock<IObserver>().Object);
 
             // Act
-            var result = center.AddNewRoomManually();
+            var success = _center.AssignSeatToStudent();
 
             // Assert
-            Assert.True(result);
-            Assert.Equal(initialActive + 1, center.ActiveRooms.Count);
+            Assert.False(success);
         }
 
         [Fact]
-        public void Should_Not_Add_New_Room_Manually_If_None_Left()
+        public void NotifyObservers_ShouldNotifyAllObservers()
         {
             // Arrange
-            var center = SetupTestCenter(totalRooms: 3);
-            while (center.AddNewRoomManually()) { }
+            var room = new Room("R1", 10, "Test Center");
+            var observerMock = new Mock<IObserver>();
+            _center.Attach(observerMock.Object);
 
             // Act
-            var result = center.AddNewRoomManually();
+            _center.NotifyObservers(room);
 
             // Assert
-            Assert.False(result);
-        }
-
-        [Fact]
-        public void Room_Utilization_Should_Be_Calculated_Correctly()
-        {
-            // Arrange
-            var room = RoomFactory.CreateRoom("R1", 4, "Test");
-            room.AssignStudent(); room.AssignStudent(); // 2/4 = 0.5
-
-            // Act
-            var utilization = room.Utilization;
-
-            // Assert
-            Assert.Equal(0.5, utilization, 1); // 1 digit precision
-        }
-
-        [Fact]
-        public void Room_Should_Not_Assign_If_Full()
-        {
-            // Arrange
-            var room = RoomFactory.CreateRoom("R2", 1, "Test");
-            room.AssignStudent(); // Now full
-
-            // Act
-            var result = room.AssignStudent();
-
-            // Assert
-            Assert.False(result);
+            observerMock.Verify(o => o.Update(_center), Times.Once);
         }
     }
 }

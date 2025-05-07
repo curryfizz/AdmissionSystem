@@ -1,72 +1,57 @@
-﻿using AdmissionSystem.Core.Patterns;
+﻿using AdmissionSystem.Core.Factories;
+using AdmissionSystem.Core.Patterns;
 
 namespace AdmissionSystem.Core.Models
 {
-    public class AdmissionCenter
+    public class AdmissionCenter : IRoomSubject
     {
+        public int CenterId { get; set; }
         public string Name { get; }
-        public List<Room> AllRooms { get; }
-        public List<Room> ActiveRooms { get; }
 
         private readonly ISeatAllocationStrategy _strategy;
-        private readonly int MinActiveRooms;
-        private readonly double UtilThreshold;
+        private readonly List<IObserver> _observers = new();
+        private readonly List<Room> _rooms = new();
 
-        public AdmissionCenter(string name, ISeatAllocationStrategy strategy, int minRooms = 3, double threshold = 0.85)
+        public AdmissionCenter(string name, ISeatAllocationStrategy strategy)
         {
             Name = name;
             _strategy = strategy;
-            AllRooms = new();
-            ActiveRooms = new();
-            MinActiveRooms = minRooms;
-            UtilThreshold = threshold;
         }
 
-        public void AddRoom(Room room) => AllRooms.Add(room);
-
-        public void ActivateInitialRooms()
+        public void AddRoom(Room room)
         {
-            var available = AllRooms.Take(MinActiveRooms).ToList();
-            ActiveRooms.AddRange(available);
+            _rooms.Add(room);
         }
 
         public bool AssignSeatToStudent()
         {
-            var assigned = _strategy.AssignSeat(ActiveRooms);
-            if (!assigned)
-                TryAddMoreRoom();
+            var room = _strategy.SelectRoom(_rooms);
+            if (room == null || !room.HasSpace)
+                return false;
 
-            return assigned || _strategy.AssignSeat(ActiveRooms);
+            var assigned = room.AssignStudent();
+            if (assigned)
+                NotifyObservers(room);
+            return assigned;
         }
 
-        public bool AddNewRoomManually()
+        public IReadOnlyList<Room> GetRooms() => _rooms;
+
+        // Observer pattern
+        public void Attach(IObserver observer) => _observers.Add(observer);
+        public void Detach(IObserver observer) => _observers.Remove(observer);
+
+        public void NotifyObservers(Room room)
         {
-            var next = AllRooms.Except(ActiveRooms).FirstOrDefault();
-            if (next != null)
+            foreach (var observer in _observers)
             {
-                ActiveRooms.Add(next);
-                return true;
+                observer.Update(this); // Update based on subject, not individual room
             }
-            return false;
         }
 
-        public Room GetAvailableRoom()
+        public void Notify()
         {
-            return ActiveRooms.FirstOrDefault(room => room.HasSpace);
-        }
-
-        // Define the TryAddMoreRoom method
-        private void TryAddMoreRoom()
-        {
-            var avgUtil = ActiveRooms.Average(r => r.Utilization); // Calculate average utilization of active rooms
-            if (avgUtil >= UtilThreshold && AllRooms.Count > ActiveRooms.Count) // Check if the threshold is met
-            {
-                var nextRoom = AllRooms.Except(ActiveRooms).FirstOrDefault(); // Get the next available room
-                if (nextRoom != null)
-                {
-                    ActiveRooms.Add(nextRoom); // Add the room to active rooms
-                }
-            }
+            throw new NotImplementedException();
         }
     }
 }

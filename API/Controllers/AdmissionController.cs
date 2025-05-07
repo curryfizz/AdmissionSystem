@@ -24,11 +24,12 @@ namespace AdmissionSystem.API.Controllers
 
             for (int i = 1; i <= request.RoomCount; i++)
             {
+                // Create rooms with the RoomFactory
                 var room = RoomFactory.CreateRoom($"R{i}", request.RoomCapacity, center.Name);
                 center.AddRoom(room);
             }
 
-            center.ActivateInitialRooms();
+            RoomFactory.CreateInitialRooms();
             _admissionSystem.RegisterCenter(center);
 
             return Ok("System Initialized");
@@ -54,8 +55,20 @@ namespace AdmissionSystem.API.Controllers
             if (center == null)
                 return BadRequest("No center found.");
 
-            var success = center.AddNewRoomManually();
-            return success ? Ok("Room opened.") : BadRequest("No more rooms available.");
+            // Check if the room already exists
+            if (center.GetRooms().Any(r => r.Id == request.RoomId))
+            {
+                return BadRequest("Room already exists.");
+            }
+
+            // Create the room based on the provided request details
+            var room = new Room(request.RoomId, request.RoomCapacity, center.Name);
+            center.AddRoom(room);
+
+            // Optionally, notify observers of the new room
+            center.NotifyObservers(room);
+
+            return Ok(new { Message = "Room opened successfully.", Room = room });
         }
     }
 
@@ -76,5 +89,7 @@ namespace AdmissionSystem.API.Controllers
     public class OpenRoomRequest
     {
         public string RoomId { get; set; }
+        public string RoomName { get; set; }
+        public int RoomCapacity { get; set; }
     }
 }

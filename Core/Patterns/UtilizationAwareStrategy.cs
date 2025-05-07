@@ -4,13 +4,12 @@ namespace AdmissionSystem.Core.Patterns
 {
     public class UtilizationAwareStrategy : ISeatAllocationStrategy
     {
-        public bool AssignSeat(List<Room> rooms)
+        public Room? SelectRoom(List<Room> rooms)
         {
-            var shuffled = rooms.Where(r => r.HasSpace).OrderBy(r => Guid.NewGuid());
-            foreach (var room in shuffled)
-                if (room.AssignStudent())
-                    return true;
-            return false;
+            return rooms
+                .Where(r => r.HasSpace)
+                .OrderBy(r => r.Utilization)
+                .FirstOrDefault();
         }
     }
 }

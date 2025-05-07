@@ -4,6 +4,6 @@ namespace AdmissionSystem.Core.Patterns
 {
     public interface ISeatAllocationStrategy
     {
-        bool AssignSeat(List<Room> rooms);
+        Room? SelectRoom(List<Room> rooms);
     }
 }

@@ -1,7 +1,8 @@
-﻿namespace AdmissionSystem.Core.Models
+﻿using AdmissionSystem.Core.Patterns;
+
+namespace AdmissionSystem.Core.Models
 {
-    // Models/Room.cs
-    public class Room
+    public class Room : IObserver
     {
         public string Id { get; }
         public int Capacity { get; }
@@ -29,6 +30,13 @@
             }
             return false;
         }
-    }
 
+        // Observer pattern: respond to updates from AdmissionCenter
+        public void Update(IRoomSubject subject)
+        {
+            // Optional: log or respond to state changes if needed
+            // For now, just a placeholder
+            Console.WriteLine($"Room {Id} received update from {subject.GetType().Name}");
+        }
+    }
 }
