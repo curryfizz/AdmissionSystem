@@ -1,8 +1,7 @@
-﻿using AdmissionSystem.Core.Models;
-using AdmissionSystem.Core.Patterns;
-using Moq;
+﻿using Moq;
 using Xunit;
-
+using AdmissionSystem.Core.Models;
+using AdmissionSystem.Core.Patterns;
 
 namespace AdmissionSystem.Tests
 {
@@ -35,16 +34,29 @@ namespace AdmissionSystem.Tests
             // Arrange
             var room = new Room("R1", 10, "Test Center");
             var strategy = new Mock<ISeatAllocationStrategy>();
+
+            // Mocking the strategy to return the room when selecting
             strategy.Setup(s => s.SelectRoom(It.IsAny<List<Room>>())).Returns(room);
-            _center.AddRoom(room);
-            _center.Attach(new Mock<IObserver>().Object);
+
+            // Create the AdmissionCenter with the mocked strategy
+            var center = new AdmissionCenter("Test Center", strategy.Object);
+
+            // Add the room to the center
+            center.AddRoom(room);
+
+            // Mock an observer and attach it to the center
+            var observer = new Mock<IObserver>();
+            center.Attach(observer.Object);
 
             // Act
-            var success = _center.AssignSeatToStudent();
+            var success = center.AssignSeatToStudent();
 
             // Assert
-            Assert.True(success);
-            Assert.Equal(1, room.Occupied);
+            Assert.True(success);  // Ensure the seat assignment is successful
+            Assert.Equal(1, room.Occupied);  // Ensure the room's Occupied property is incremented
+
+            // Verify if observers are notified with the correct subject (AdmissionCenter)
+            observer.Verify(o => o.Update(It.IsAny<IRoomSubject>()), Times.Once);
         }
 
         [Fact]
