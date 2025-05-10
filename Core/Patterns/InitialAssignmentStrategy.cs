@@ -14,7 +14,7 @@ namespace AdmissionSystem.Core.Patterns
                     if (department.HasVacancy)
                     {
                         student.SetTentativeOffer(department);
-                        student.AcceptOffer(); // Add this
+                        student.AcceptOffer();
                         break;
                     }
                 }

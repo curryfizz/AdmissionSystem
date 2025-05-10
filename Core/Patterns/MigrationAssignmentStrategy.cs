@@ -6,7 +6,6 @@ namespace AdmissionSystem.Core.Patterns
     {
         public void AssignSeats(List<Student> students, List<Department> departments)
         {
-            // Migrate accepted students who want better options
             foreach (var student in students.Where(s =>
                 s.Status == AdmissionStatus.Accepted && s.IsMigrationEnabled))
             {
@@ -15,20 +14,18 @@ namespace AdmissionSystem.Core.Patterns
                 foreach (var preferred in student.Choices)
                 {
                     if (preferred == current)
-                        break; // stop trying after current choice
+                        break; 
 
                     if (preferred.HasVacancy)
                     {
-                        student.DeclineOffer(); // Frees up current seat
+                        student.DeclineOffer();
                         student.SetTentativeOffer(preferred);
-                        student.AcceptOffer(); // Takes new dept
+                        student.AcceptOffer(); 
                         break;
                     }
                 }
-
             }
 
-            // Try to place remaining pending students
             foreach (var student in students.Where(s => s.Status == AdmissionStatus.Pending))
             {
                 foreach (var department in student.Choices)
@@ -36,7 +33,7 @@ namespace AdmissionSystem.Core.Patterns
                     if (department.HasVacancy)
                     {
                         student.SetTentativeOffer(department);
-                        student.AcceptOffer(); 
+                        student.AcceptOffer();
                         break;
                     }
                 }

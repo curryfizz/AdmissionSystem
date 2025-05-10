@@ -4,55 +4,42 @@ namespace AdmissionSystem.Core.Patterns
 {
     public class MigrationSystem
     {
+        private readonly ISelectionStrategy _selectionStrategy;
+        private readonly ISeatAssignmentStrategy _assignmentStrategy;
+
         public List<Department> Departments { get; } = new();
         public List<Student> Students { get; } = new();
         public int MaxCalls { get; }
         public int CurrentCall { get; private set; }
 
-        public MigrationSystem(int maxCalls)
+        public MigrationSystem(int maxCalls, ISelectionStrategy selectionStrategy, ISeatAssignmentStrategy assignmentStrategy)
         {
             MaxCalls = maxCalls;
+            _selectionStrategy = selectionStrategy;
+            _assignmentStrategy = assignmentStrategy;
         }
 
         public void Initialize()
         {
-            // Sort students by rank
-            var sortedStudents = Students.OrderBy(s => s.Rank).ToList();
-
-            // Assign departments based on student preferences and availability
-            foreach (var student in sortedStudents)
-            {
-                foreach (var department in student.Choices)
-                {
-                    if (department.HasVacancy)
-                    {
-                        student.AcceptedDepartment = department;
-                        department.AddStudent(student);
-                        break;
-                    }
-                }
-            }
+            _assignmentStrategy.AssignSeats(Students, Departments);
         }
 
         public void RunNextCall()
         {
             if (CurrentCall >= MaxCalls) return;
 
-            foreach (var student in Students)
+            var studentToMigrate = _selectionStrategy.SelectStudent(Students.Where(s => s.IsMigrationEnabled).ToList());
+
+            if (studentToMigrate != null)
             {
-                if (student.AcceptedDepartment == null || !student.IsMigrationEnabled)
-                    continue;
-
-                var currentIndex = student.Choices.IndexOf(student.AcceptedDepartment);
-
-                // Look for a better department (earlier in preferences)
-                foreach (var dept in student.Choices.Take(currentIndex))
+                foreach (var department in studentToMigrate.Choices)
                 {
-                    if (dept.HasVacancy)
+                    if (department.HasVacancy)
                     {
-                        student.AcceptedDepartment.RemoveStudent(student);
-                        student.AcceptedDepartment = dept;
-                        dept.AddStudent(student);
+                        studentToMigrate.AcceptedDepartment?.RemoveStudent(studentToMigrate);
+
+                        studentToMigrate.AcceptedDepartment = department;
+                        department.AddStudent(studentToMigrate);
                         break;
                     }
                 }
@@ -64,7 +51,10 @@ namespace AdmissionSystem.Core.Patterns
         public void FinalizeStudent(int studentId)
         {
             var student = Students.FirstOrDefault(s => s.Id == studentId);
-            student?.DisableMigration();
+            if (student != null)
+            {
+                student.DisableMigration(); // Disable further migration for the student
+            }
         }
     }
 }

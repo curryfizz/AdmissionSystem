@@ -8,55 +8,90 @@ namespace AdmissionSystem.API.Controllers
     [Route("api/migration")]
     public class MigrationController : ControllerBase
     {
-        private static MigrationSystem _system = new(3);
+        private static MigrationSystem _system;
 
+        // Initialization of the migration system
         [HttpPost("init")]
         public IActionResult Init([FromBody] MigrationInitRequest request)
         {
-            _system = new MigrationSystem(request.Calls);
+            if (request.Calls <= 0 || request.Departments == null || request.Students == null)
+                return BadRequest("Invalid initialization data.");
 
             var departments = request.Departments
-                .Select(d => new Department(d.Name, d.Capacity)).ToList();
+                .Select(d => new Department(d.Name, d.Capacity))
+                .ToList();
 
             var students = request.Students
-                .Select(s => new Student(s.Id, s.Name, s.Rank,
-                    s.Choices.Select(c => departments.First(d => d.Name == c)).ToList())).ToList();
+                .Select(s => new Student(
+                    s.Id,
+                    s.Name,
+                    s.Rank,
+                    s.Choices
+                        .Select(choiceName => departments.FirstOrDefault(d => d.Name == choiceName))
+                        .Where(d => d != null)
+                        .ToList()
+                ))
+                .ToList();
+
+            var selectionStrategy = new RankFirstStrategy();  
+            var assignmentStrategy = new InitialAssignmentStrategy(); 
+
+            _system = new MigrationSystem(request.Calls, selectionStrategy, assignmentStrategy);
 
             _system.Departments.AddRange(departments);
             _system.Students.AddRange(students);
 
             _system.Initialize();
 
-            return Ok("Migration system initialized.");
+            return Ok("Migration system initialized successfully.");
         }
 
+        // Run the next migration call
         [HttpPost("call")]
         public IActionResult Call()
         {
+            if (_system == null)
+                return BadRequest("Migration system is not initialized.");
+
             _system.RunNextCall();
             return Ok("Migration round completed.");
         }
 
+        // Finalize a student's migration
         [HttpPost("finalize/{studentId}")]
         public IActionResult Finalize(int studentId)
         {
+            if (_system == null)
+                return BadRequest("Migration system is not initialized.");
+
+            var student = _system.Students.FirstOrDefault(s => s.Id == studentId);
+            if (student == null)
+                return NotFound($"Student with ID {studentId} not found.");
+
             _system.FinalizeStudent(studentId);
-            return Ok("Migration turned off for student.");
+            return Ok($"Migration turned off for student {student.Name}.");
         }
 
+        // Get the result of the migration process
         [HttpGet("result")]
         public IActionResult Result()
         {
-            return Ok(_system.Students.Select(s => new
+            if (_system == null)
+                return BadRequest("Migration system is not initialized.");
+
+            var result = _system.Students.Select(s => new
             {
                 s.Name,
                 s.Id,
                 Department = s.AcceptedDepartment?.Name ?? "None",
                 s.Status,
                 s.IsMigrationEnabled
-            }));
+            }).ToList();
+
+            return Ok(result);
         }
     }
+
 
     public class MigrationInitRequest
     {
@@ -78,7 +113,4 @@ namespace AdmissionSystem.API.Controllers
         public int Rank { get; set; }
         public List<string> Choices { get; set; }
     }
-
-
 }
-

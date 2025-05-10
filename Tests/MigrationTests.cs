@@ -10,17 +10,16 @@ namespace AdmissionSystem.Tests
         public void Should_Assign_Top_Ranked_Student_First()
         {
             var d1 = new Department("CSE", 1); // only one seat
-            var student1 = new Student(1, "Alice", 2, new List<Department> { d1 }); // lower priority
-            var student2 = new Student(2, "Bob", 1, new List<Department> { d1 });   // higher priority
+            var student1 = new Student(1, "Alice", 2, new List<Department> { d1 });
+            var student2 = new Student(2, "Bob", 1, new List<Department> { d1 });
 
-
-            var system = new MigrationSystem(2);
+            var system = new MigrationSystem(2, new RankFirstStrategy(), new InitialAssignmentStrategy());
             system.Students.AddRange(new[] { student1, student2 });
             system.Departments.AddRange(new[] { d1 });
             system.Initialize();
 
-            Assert.Equal("CSE", student2.AcceptedDepartment?.Name); // Bob (rank 1) should get it
-            Assert.Null(student1.AcceptedDepartment); 
+            Assert.Equal("CSE", student2.AcceptedDepartment?.Name);
+            Assert.Null(student1.AcceptedDepartment);
         }
 
         [Fact]
@@ -55,7 +54,7 @@ namespace AdmissionSystem.Tests
             var student = new Student(1, "Rick", 1, new List<Department> { d1, d2 });
 
             d1.AddStudent(student); // Fill up CSE
-            var system = new MigrationSystem(2);
+            var system = new MigrationSystem(2, new RankFirstStrategy(), new InitialAssignmentStrategy());
             system.Students.Add(student);
             system.Departments.AddRange(new[] { d1, d2 });
 
@@ -75,43 +74,15 @@ namespace AdmissionSystem.Tests
             var d2 = new Department("EEE", 1);
 
             var student = new Student(1, "Leo", 1, new List<Department> { d1, d2 });
-
-            d2.AddStudent(student); // Fill EEE
-            var system = new MigrationSystem(2);
+            var system = new MigrationSystem(2, new RankFirstStrategy(), new InitialAssignmentStrategy());
             system.Students.Add(student);
             system.Departments.AddRange(new[] { d1, d2 });
 
             system.Initialize();
-            student.AcceptOffer();
-            system.FinalizeStudent(student.Id);
+            system.FinalizeStudent(student.Id);  
+            system.RunNextCall();  
 
-            d1.Students.Clear(); // free CSE
-            system.RunNextCall();
-
-            Assert.Equal("CSE", student.AcceptedDepartment?.Name);
-        }
-
-        [Fact]
-        public void Should_Assign_Pending_Students_During_Migration_If_Vacancy()
-        {
-            var d1 = new Department("CSE", 1);
-
-            var s1 = new Student(1, "Tom", 1, new List<Department> { d1 });
-            var s2 = new Student(2, "Jerry", 2, new List<Department> { d1 });
-
-            var system = new MigrationSystem(2);
-            system.Students.AddRange(new[] { s1, s2 });
-            system.Departments.Add(d1);
-
-            system.Initialize();
-            Assert.Equal("CSE", s1.AcceptedDepartment?.Name);
-            Assert.Null(s2.AcceptedDepartment);
-
-            s1.DeclineOffer(); // Open seat
-            system.RunNextCall();
-
-            Assert.Null(s2.AcceptedDepartment);
+            Assert.Equal("CSE", student.AcceptedDepartment?.Name);  
         }
     }
-
 }

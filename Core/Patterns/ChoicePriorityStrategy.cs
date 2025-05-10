@@ -2,7 +2,7 @@
 
 namespace AdmissionSystem.Core.Patterns
 {
-    public class ChoicePriorityStrategy:ISelectionStrategy
+    public class ChoicePriorityStrategy : ISelectionStrategy
     {
         private readonly Department _targetDepartment;
 

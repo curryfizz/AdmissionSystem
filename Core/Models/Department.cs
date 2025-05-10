@@ -17,11 +17,10 @@
 
         public void AddStudent(Student student)
         {
-            if (!HasVacancy)
-                throw new InvalidOperationException("No vacancies left.");
-
-            Students.Add(student); // 
-            student.AcceptedDepartment = this;
+            if (!Students.Contains(student) && Students.Count < Capacity)
+            {
+                Students.Add(student);
+            }
         }
 
         public void RemoveStudent(Student student)

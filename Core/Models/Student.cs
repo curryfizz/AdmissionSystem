@@ -4,14 +4,11 @@
     {
         public string Name { get; set; } = string.Empty;
         public int Id { get; set; }
-
-
         public int Rank { get; }
         public List<Department> Choices { get; }
         public Department AcceptedDepartment { get; set; }
         public bool IsMigrationEnabled { get; private set; } = true;
         public AdmissionStatus Status { get; private set; } = AdmissionStatus.Pending;
-
 
         public Student(int id, string name, int rank, List<Department> choices)
         {
@@ -28,6 +25,7 @@
                 throw new InvalidOperationException("No offer to accept");
 
             Status = AdmissionStatus.Accepted;
+            AcceptedDepartment.AddStudent(this);
         }
 
         public void DeclineOffer()
@@ -35,7 +33,6 @@
             if (AcceptedDepartment == null)
                 throw new InvalidOperationException("No offer to decline");
 
-            AcceptedDepartment.RemoveStudent(this);
             Status = AdmissionStatus.Declined;
             AcceptedDepartment = null;
         }
@@ -46,13 +43,13 @@
                 throw new InvalidOperationException("Only accepted students can disable migration");
 
             IsMigrationEnabled = false;
+            Status = AdmissionStatus.Declined; // Decline the student after disabling migration
         }
 
         internal void SetTentativeOffer(Department department)
         {
             if (department == null) throw new ArgumentNullException();
 
-            // Allow both pending and migration-eligible students
             if (Status == AdmissionStatus.Declined)
                 Status = AdmissionStatus.Pending; // reset status so they can be retried
 
@@ -61,9 +58,6 @@
 
             AcceptedDepartment = department;
         }
-
-
-
     }
 
     public enum AdmissionStatus
