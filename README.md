@@ -29,5 +29,24 @@
 ### Diagram to represent program flow
 ![image](https://github.com/user-attachments/assets/32c833d2-4fb5-4de6-aac7-7fe62b7bb281)
 
+
 # Design Patterns in the Migration System:
+## 1.  Strategy Pattern (ISeatAssignmentStrategy, ISelectionStrategy)
+- Selection Strategy (```ISelectionStrategy```) defines how students are picked for migration (e.g., ```RankFirstStrategy```).
+- Seat Assignment Strategy (```ISeatAssignmentStrategy```) defines how students are assigned to departments (e.g., ```InitialAssignmentStrategy```).
+- New strategies (like different selection or seat assignment methods) without changing the core logic of the migration system.
+
+## 2. Template Method Pattern (MigrationSystem Process)
+- The method ```RunNextCall()``` provides the main flow of selecting and assigning students, while the specific selection and assignment logic is handled by the strategies.
+- Provides a consistent migration flow but allows flexibility by delegating certain steps to the strategies.
+  
+### Diagram to represent classes and interfaces:
+![mermaid-diagram-2025-05-10-173105](https://github.com/user-attachments/assets/95a328ff-321f-4ce1-a636-90a5a9d76cef)
+
+### Diagram to represent program flow
+![image](https://github.com/user-attachments/assets/0d5bef75-ee4e-41b2-a269-42ed9bb2415e)
+
+
+
+
 
