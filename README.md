@@ -23,5 +23,9 @@
 - Interface ```ISeatAllocationStrategy``` defines ```SelectRoom()```
 - Concrete strategy ```UtilizationAwareStrategy``` implements logic.
 
-## Diagram to represent classes and interfaces:
+### Diagram to represent classes and interfaces:
 ![mermaid-diagram-2025-05-07-111520](https://github.com/user-attachments/assets/1c9fe74b-9dc0-4320-be14-0384ed1a5b29)
+
+### Diagram to represent program flow
+![image](https://github.com/user-attachments/assets/a8c4f5ff-2316-41ad-a7f9-f6a698a97206)
+
